@@ -40,7 +40,7 @@ func (e *External) Transfer(zone string, serial uint32) (<-chan []dns.RR, error)
 		ch <- []dns.RR{&dns.NS{Hdr: nsHdr, Ns: nsName}}
 
 		// Add Nameserver A/AAAA records
-		nsRecords := e.externalAddrFunc(state)
+		nsRecords := e.externalAddrFunc(state, e.headless)
 		for i := range nsRecords {
 			// externalAddrFunc returns incomplete header names, correct here
 			nsRecords[i].Header().Name = nsName
@@ -48,7 +48,7 @@ func (e *External) Transfer(zone string, serial uint32) (<-chan []dns.RR, error)
 			ch <- []dns.RR{nsRecords[i]}
 		}
 
-		svcs := e.externalServicesFunc(zone)
+		svcs := e.externalServicesFunc(zone, e.headless)
 		srvSeen := make(map[string]struct{})
 		for i := range svcs {
 			name := msg.Domain(svcs[i].Key)

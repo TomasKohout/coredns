@@ -132,7 +132,7 @@ func Header(tc Case, resp *dns.Msg) error {
 		return fmt.Errorf("authority for %q contained %d results, %d expected", tc.Qname, len(resp.Ns), len(tc.Ns))
 	}
 	if len(resp.Extra) != len(tc.Extra) {
-		return fmt.Errorf("additional for %q contained %d results, %d expected", tc.Qname, len(resp.Extra), len(tc.Extra))
+		return fmt.Errorf("additional for %q  %v contained %d results, %d expected", tc.Qname,  resp.Extra , len(resp.Extra), len(tc.Extra))
 	}
 	return nil
 }

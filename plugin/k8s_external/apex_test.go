@@ -17,6 +17,7 @@ func TestApex(t *testing.T) {
 	k.APIConn = &external{}
 
 	e := New()
+	e.headless = true
 	e.Zones = []string{"example.com."}
 	e.Next = test.NextHandler(dns.RcodeSuccess, nil)
 	e.externalFunc = k.External
@@ -118,4 +119,50 @@ var testsApex = []test.Case{
 			test.A("ns1.dns.example.com.	5	IN	A	127.0.0.1"),
 		},
 	},
+	{
+		Qname: "svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("svc-headless.testns.example.com.	5	IN	A	1.2.3.4"),
+			test.A("svc-headless.testns.example.com.	5	IN	A	1.2.3.5"),
+		},
+	},
+	{
+		Qname: "svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.SRV("svc-headless.testns.example.com.	5	IN	SRV	0	50	80	enpoint-svc-0.svc-headless.testns.example.com."),
+			test.SRV("svc-headless.testns.example.com.	5	IN	SRV	0	50	80	enpoint-svc-1.svc-headless.testns.example.com."),
+		},
+	},
+	{
+		Qname: "_http._tcp.svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.SRV("_http._tcp.svc-headless.testns.example.com.	5	IN	SRV	0	50	80	enpoint-svc-0.svc-headless.testns.example.com."),
+			test.SRV("_http._tcp.svc-headless.testns.example.com.	5	IN	SRV	0	50	80	enpoint-svc-1.svc-headless.testns.example.com."),
+		},
+	},
+	{
+		Qname: "enpoint-svc-0.svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.SRV("enpoint-svc-0.svc-headless.testns.example.com.		5	IN	SRV	0	100	80	enpoint-svc-0.svc-headless.testns.example.com."),
+		},
+	},
+	{
+		Qname: "enpoint-svc-1.svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.SRV("enpoint-svc-1.svc-headless.testns.example.com.		5	IN	SRV	0	100	80	enpoint-svc-1.svc-headless.testns.example.com."),
+		},
+	},
+	{
+		Qname: "enpoint-svc-0.svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("enpoint-svc-0.svc-headless.testns.example.com.	5	IN	A	1.2.3.4"),
+		},
+	},
+	{
+		Qname: "enpoint-svc-1.svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("enpoint-svc-1.svc-headless.testns.example.com.	5	IN	A	1.2.3.5"),
+		},
+	},
+
 }

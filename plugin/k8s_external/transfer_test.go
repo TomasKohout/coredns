@@ -27,6 +27,7 @@ func TestTransferAXFR(t *testing.T) {
 	k.APIConn = &external{}
 
 	e := New()
+	e.headless = true
 	e.Zones = []string{"example.com."}
 	e.externalFunc = k.External
 	e.externalAddrFunc = externalAddress  // internal test function
@@ -65,7 +66,7 @@ func TestTransferAXFR(t *testing.T) {
 
 	diff := difference(expect, records)
 	if len(diff) != 0 {
-		t.Errorf("Got back %d records that do not exist in test cases, should be 0:", len(diff))
+		t.Errorf("Got back %d records that do not exist in test cases, should be 0: %+v", len(diff), diff)
 		for _, rec := range diff {
 			t.Errorf("%+v", rec)
 		}
@@ -73,6 +74,7 @@ func TestTransferAXFR(t *testing.T) {
 
 	diff = difference(records, expect)
 	if len(diff) != 0 {
+
 		t.Errorf("Result is missing %d records, should be 0:", len(diff))
 		for _, rec := range diff {
 			t.Errorf("%+v", rec)

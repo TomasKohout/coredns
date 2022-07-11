@@ -24,7 +24,7 @@ func (k *Kubernetes) External(state request.Request, headless bool) ([]msg.Servi
 	// We are dealing with a fairly normal domain name here, but we still need to have the service
 	// and the namespace:
 	// service.namespace.<base>
-	var port, protocol string
+	var port, protocol, endpoint string
 	namespace := segs[last]
 	if !k.namespaceExposed(namespace) {
 		return nil, dns.RcodeNameError
@@ -37,7 +37,10 @@ func (k *Kubernetes) External(state request.Request, headless bool) ([]msg.Servi
 
 	service := segs[last]
 	last--
-	if last == 1 {
+	if last == 0 {
+		endpoint = stripUnderscore(segs[last])
+		last--
+	} else if last == 1 {
 		protocol = stripUnderscore(segs[last])
 		port = stripUnderscore(segs[last-1])
 		last -= 2
@@ -48,8 +51,15 @@ func (k *Kubernetes) External(state request.Request, headless bool) ([]msg.Servi
 		return nil, dns.RcodeNameError
 	}
 
+	var (
+		endpointsListFunc func() []*object.Endpoints
+		endpointsList     []*object.Endpoints
+		serviceList       []*object.Service
+	)
+
 	idx := object.ServiceKey(service, namespace)
-	serviceList := k.APIConn.SvcIndex(idx)
+	serviceList = k.APIConn.SvcIndex(idx)
+	endpointsListFunc = func() []*object.Endpoints { return k.APIConn.EpIndex(idx) }
 
 	services := []msg.Service{}
 	zonePath := msg.Path(state.Zone, coredns)
@@ -63,12 +73,11 @@ func (k *Kubernetes) External(state request.Request, headless bool) ([]msg.Servi
 			continue
 		}
 
-		// Endpoint query or headless service
-		if headless && svc.Headless() {
-	
-			idx := object.ServiceKey(svc.Name, svc.Namespace)
-			endpointsList :=  k.APIConn.EpIndex(idx)
-	
+		if svc.Headless() || endpoint != "" {
+			if endpointsList == nil {
+				endpointsList = endpointsListFunc()
+			}
+			// Endpoint query or headless service
 			for _, ep := range endpointsList {
 				if object.EndpointsKey(svc.Name, svc.Namespace) != ep.Index {
 					continue
@@ -76,11 +85,18 @@ func (k *Kubernetes) External(state request.Request, headless bool) ([]msg.Servi
 
 				for _, eps := range ep.Subsets {
 					for _, addr := range eps.Addresses {
-						for _, p := range eps.Ports {
-							if !(matchPortAndProtocol(port, p.Name, protocol, string(p.Protocol))) {
+
+						// See comments in parse.go parseRequest about the endpoint handling.
+						if endpoint != "" {
+							if !match(endpoint, endpointHostname(addr, k.endpointNameMode)) {
 								continue
 							}
-							rcode = dns.RcodeSuccess
+						}
+
+						for _, p := range eps.Ports {
+							if !(matchPortAndProtocol(port, p.Name, protocol, p.Protocol)) {
+								continue
+							}
 							s := msg.Service{Host: addr.IP, Port: int(p.Port), TTL: k.ttl}
 							s.Key = strings.Join([]string{zonePath, svc.Namespace, svc.Name, endpointHostname(addr, k.endpointNameMode)}, "/")
 
@@ -140,12 +156,23 @@ func (k *Kubernetes) ExternalServices(zone string, headless bool) (services []ms
 
 						for _, p := range eps.Ports {
 							s := msg.Service{Host: addr.IP, Port: int(p.Port), TTL: k.ttl}
-							s.Key = strings.Join([]string{zonePath, svc.Namespace, svc.Name}, "/")
-							
+							baseSvc := strings.Join([]string{zonePath, svc.Namespace, svc.Name}, "/")
+							s.Key = strings.Join([]string{baseSvc, endpointHostname(addr, k.endpointNameMode)}, "/")
+							s.TargetStrip = 0
+							s.Group = baseSvc
 							services = append(services, s)
-							s.Key = strings.Join(append([]string{zonePath, svc.Namespace, svc.Name, endpointHostname(addr, k.endpointNameMode)}, strings.ToLower("_"+string(p.Protocol)), strings.ToLower("_"+string(p.Name))), "/")
-							s.TargetStrip = 2
+
+
+							s = msg.Service{Host: addr.IP, Port: int(p.Port), TTL: k.ttl}
+							s.Key = strings.Join([]string{baseSvc, endpointHostname(addr, k.endpointNameMode)}, "/")
+							s.TargetStrip = 0
+							s.Group = baseSvc
 							services = append(services, s)
+
+							// s.Key = strings.Join(append([]string{baseSvc, strings.ToLower("_"+string(p.Protocol))}, strings.ToLower("_"+string(p.Name))), "/")
+							// s.TargetStrip = 2
+							// s.Group = baseSvc
+							// services = append(services, s)
 						}
 					}
 				}

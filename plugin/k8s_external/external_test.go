@@ -207,8 +207,12 @@ var tests = []test.Case{
 	{
 		Qname: "svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.SRV("svc-headless.testns.example.com.	5	IN	SRV	0	50	80	enpoint-svc-0.svc-headless.testns.example.com."),
-			test.SRV("svc-headless.testns.example.com.	5	IN	SRV	0	50	80	enpoint-svc-1.svc-headless.testns.example.com."),
+			test.SRV("svc-headless.testns.example.com.	5	IN	SRV	0	50	80	endpoint-svc-0.svc-headless.testns.example.com."),
+			test.SRV("svc-headless.testns.example.com.	5	IN	SRV	0	50	80	endpoint-svc-1.svc-headless.testns.example.com."),
+		},
+		Extra: []dns.RR{
+			test.A("endpoint-svc-0.svc-headless.testns.example.com.	5	IN	A	1.2.3.4"),
+			test.A("endpoint-svc-1.svc-headless.testns.example.com.	5	IN	A	1.2.3.5"),
 		},
 	},
 	{
@@ -217,25 +221,47 @@ var tests = []test.Case{
 			test.SRV("_http._tcp.svc-headless.testns.example.com.	5	IN	SRV	0 50 80 endpoint-svc-0.svc-headless.testns.example.com."),
 			test.SRV("_http._tcp.svc-headless.testns.example.com.	5	IN	SRV	0 50 80 endpoint-svc-1.svc-headless.testns.example.com."),
 		},
-	},
-	{
-		Qname: "enpoint-svc-1.svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.SRV("enpoint-svc-1.svc-headless.testns.example.com.		5	IN	SRV	0	100	80	enpoint-svc-1.svc-headless.testns.example.com."),
+		Extra: []dns.RR{
+			test.A("endpoint-svc-0.svc-headless.testns.example.com.	5	IN	A	1.2.3.4"),
+			test.A("endpoint-svc-1.svc-headless.testns.example.com.	5	IN	A	1.2.3.5"),
 		},
 	},
 	{
-		Qname: "enpoint-svc-0.svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+		Qname: "endpoint-svc-0.svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("enpoint-svc-0.svc-headless.testns.example.com.	5	IN	A	1.2.3.4"),
+			test.SRV("endpoint-svc-0.svc-headless.testns.example.com.		5	IN	SRV	0	100	80	endpoint-svc-0.svc-headless.testns.example.com."),
+		},
+		Extra: []dns.RR{
+			test.A("endpoint-svc-0.svc-headless.testns.example.com.	5	IN	A	1.2.3.4"),
 		},
 	},
 	{
-		Qname: "enpoint-svc-1.svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+		Qname: "endpoint-svc-1.svc-headless.testns.example.com.", Qtype: dns.TypeSRV, Rcode: dns.RcodeSuccess,
 		Answer: []dns.RR{
-			test.A("enpoint-svc-1.svc-headless.testns.example.com.	5	IN	A	1.2.3.5"),
+			test.SRV("endpoint-svc-1.svc-headless.testns.example.com.		5	IN	SRV	0	100	80	endpoint-svc-1.svc-headless.testns.example.com."),
+		},
+		Extra: []dns.RR{
+			test.A("endpoint-svc-1.svc-headless.testns.example.com.	5	IN	A	1.2.3.5"),
 		},
 	},
+	{
+		Qname: "endpoint-svc-0.svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("endpoint-svc-0.svc-headless.testns.example.com.	5	IN	A	1.2.3.4"),
+		},
+	},
+	{
+		Qname: "endpoint-svc-1.svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+		Answer: []dns.RR{
+			test.A("endpoint-svc-1.svc-headless.testns.example.com.	5	IN	A	1.2.3.5"),
+		},
+	},
+	// {
+	// 	Qname: "svc-headless.testns.example.com.", Qtype: dns.TypeA, Rcode: dns.RcodeSuccess,
+	// 	Ns: []dns.RR{
+	// 		test.SOA("example.com.	5	IN	SOA	ns1.dns.example.com. hostmaster.example.com. 1499347823 7200 1800 86400 5"),
+	// 	},
+	// },
 }
 
 type external struct{}
@@ -286,13 +312,13 @@ var epIndexExternal = map[string][]*object.Endpoints{
 							IP:            "1.2.3.4",
 							Hostname:      "endpoint-svc-0",
 							NodeName:      "test-node",
-							TargetRefName: "pod-name-0",
+							TargetRefName: "endpoint-svc-0",
 						},
 						{
 							IP:            "1.2.3.5",
 							Hostname:      "endpoint-svc-1",
 							NodeName:      "test-node",
-							TargetRefName: "pod-name-1",
+							TargetRefName: "endpoint-svc-1",
 						},
 					},
 				},

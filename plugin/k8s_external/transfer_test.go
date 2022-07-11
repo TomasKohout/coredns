@@ -60,13 +60,18 @@ func TestTransferAXFR(t *testing.T) {
 			if ans.Header().Rrtype == dns.TypeTXT {
 				continue
 			}
+
+			// // Exclude Headless svc
+			// if ans.Header().Name == "svc-headless.testns.example.com." {
+			// 	continue
+			// }
 			expect = append(expect, ans)
 		}
 	}
 
 	diff := difference(expect, records)
 	if len(diff) != 0 {
-		t.Errorf("Got back %d records that do not exist in test cases, should be 0: %+v", len(diff), diff)
+		t.Errorf("Got back %d records that do not exist in test cases, should be 0", len(diff))
 		for _, rec := range diff {
 			t.Errorf("%+v", rec)
 		}
@@ -90,6 +95,7 @@ func TestTransferIXFR(t *testing.T) {
 
 	e := New()
 	e.Zones = []string{"example.com."}
+	e.headless = true
 	e.externalFunc = k.External
 	e.externalAddrFunc = externalAddress  // internal test function
 	e.externalSerialFunc = externalSerial // internal test function
@@ -135,7 +141,9 @@ func difference(testRRs []dns.RR, gotRRs []dns.RR) []dns.RR {
 	}
 
 	foundRRs := []dns.RR{}
+	cmp := map[string]struct{}{}
 	for _, rr := range gotRRs {
+		cmp[rr.String()] = struct{}{}
 		if _, ok := expectedRRs[rr.String()]; !ok {
 			foundRRs = append(foundRRs, rr)
 		}

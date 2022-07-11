@@ -50,9 +50,25 @@ func (e *External) Transfer(zone string, serial uint32) (<-chan []dns.RR, error)
 
 		svcs := e.externalServicesFunc(zone, e.headless)
 		srvSeen := make(map[string]struct{})
+		// svcsGroup := make(map[string][]msg.Service)
 		for i := range svcs {
 			name := msg.Domain(svcs[i].Key)
+			// if e.headless {
+			// 	base, _ := dnsutil.TrimZone(name, state.Zone)
+
+			// 	segs := dns.SplitDomainName(base)
+	
+			// 	// we have an endpoint from headless service here
+			// 	// so add that base because we want to filter it out
+			// 	if len(segs) == 3 {
+			// 		baseSvcName := strings.Join(append(segs[1:], state.Zone), ".")
+			// 		srvSeen[baseSvcName] = struct{}{}
+			// 	}
+			// }
 			if svcs[i].TargetStrip == 0 {
+				// if svcs[i].Group != "" {
+				// 	svcsGroup[svcs[i].Group] = append(svcsGroup[svcs[i].Group], svcs[i])
+				// }
 				// Add Service A/AAAA records
 				s := request.Request{Req: &dns.Msg{Question: []dns.Question{{Name: name}}}}
 				as, _ := e.a(ctx, []msg.Service{svcs[i]}, s)
@@ -81,6 +97,27 @@ func (e *External) Transfer(zone string, serial uint32) (<-chan []dns.RR, error)
 				}
 			}
 		}
+		// for i := range svcsGroup {
+		// 	grouped := svcsGroup[i]
+		// 	name := msg.Domain(grouped[0].Key)
+		// 	// Add Service A/AAAA records
+		// 	s := request.Request{Req: &dns.Msg{Question: []dns.Question{{Name: name}}}}
+		// 	as, _ := e.a(ctx, grouped, s)
+		// 	if len(as) > 0 {
+		// 		ch <- as
+		// 	}
+		// 	aaaas, _ := e.aaaa(ctx, grouped, s)
+		// 	if len(aaaas) > 0 {
+		// 		ch <- aaaas
+		// 	}
+		// 	// Add bare SRV record, ensuring uniqueness
+		// 	recs, _ := e.srv(ctx, grouped, s)
+		// 	for _, srv := range recs {
+		// 		if !nameSeen(srvSeen, srv) {
+		// 			ch <- []dns.RR{srv}
+		// 		}
+		// 	}
+		// }
 		ch <- []dns.RR{soa}
 		close(ch)
 	}()
